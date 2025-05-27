@@ -1,0 +1,1 @@
+a large number of applications have been proposed for telecommunications and related fields. Therefore, we present a study which analyzes in depth the effects of BCs on wireless networks to improve the sharing of radio and network resources by providing a deterministic mathematical model for BC-based wireless networks.

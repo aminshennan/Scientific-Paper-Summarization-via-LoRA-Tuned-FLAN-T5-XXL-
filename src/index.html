@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <!-- Include pdfjs-dist for PDF extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
+        
+    <!-- Include mammoth for Word document extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+
+    <title>Scientific AI Summarizer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
+        :root {
+            --primary-color: rgb(90, 78, 188);
+            --primary-light: rgb(90, 78, 188);
+            --primary-dark: #0a00b6;
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --input-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --success-color: #00c853;
+            --error-color: #d50000;
+            --bg-color-dark: #121212;
+            --text-color-dark: #f5f5f5;
+            --input-bg-dark: #1e1e1e;
+            --border-color-dark: #333333;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: var(--bg-color-dark);
+            color: var(--text-color-dark);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .container.dark-mode {
+            background-color: var(--input-bg-dark);
+            border-color: var(--border-color-dark);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .input-area, .output-area {
+            margin-bottom: 30px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 5px;
+        }
+
+        textarea {
+            width: 96%;
+            height: 150px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode textarea {
+            background-color: var(--input-bg-dark);
+            color: var(--text-color-dark);
+            border-color: var(--border-color-dark);
+        }
+
+        textarea, .drag-drop-area, .button {
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .dark-mode textarea, .dark-mode .drag-drop-area, .dark-mode .button {
+            background-color: var(--input-bg-dark);
+            color: var(--text-color-dark);
+            border-color: var(--border-color-dark);
+        }
+
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: var(--primary-light);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #file-info {
+            color: var(--text-color);
+            font-style: italic;
+            margin-left: 15px;
+            opacity: 0.7;
+        }
+
+        .drag-drop-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background-color: rgba(98, 0, 234, 0.05);
+            cursor: pointer;
+        }
+
+        .drag-drop-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(98, 0, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .drag-drop-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(98, 0, 234, 0.15);
+            transform: scale(1.05);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .loading::after {
+            content: "";
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+        }
+
+        .success-message, .error-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .success-message {
+            background-color: rgba(0, 200, 83, 0.2);
+            color: var(--success-color);
+        }
+
+        .error-message {
+            background-color: rgba(213, 0, 0, 0.2);
+            color: var(--error-color);
+        }
+
+        .show-message {
+            opacity: 1;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #word-count {
+            margin-top: 10px;
+            font-style: italic;
+            animation: fadeIn 1s ease-out;
+        }
+
+        #theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-color);
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        #theme-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            transform: scale(1.1) rotate(15deg);
+        }
+
+        .dark-mode #theme-toggle {
+            color: var(--text-color-dark);
+        }
+
+        .export-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .export-buttons button {
+            margin-left: 10px;
+        }
+
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.5;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            background-color: var(--primary-light);
+            left: 10%;
+            top: 20%;
+        }
+
+        .shape:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            background-color: var(--primary-color);
+            right: 15%;
+            bottom: 25%;
+            animation-delay: -5s;
+        }
+
+        .shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            background-color: var(--primary-dark);
+            left: 20%;
+            bottom: 15%;
+            animation-delay: -10s;
+        }
+
+        .shape:nth-child(4) {
+            width: 200px;
+            height: 200px;
+            background-color: var(--primary-dark);
+            left: 40%;
+            bottom: 45%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(50px, 50px) rotate(90deg); }
+            50% { transform: translate(100px, -50px) rotate(180deg); }
+            75% { transform: translate(-50px, 100px) rotate(270deg); }
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .dark-mode .container {
+            background-color: rgba(30, 30, 30, 0.8);
+        }
+    </style>
+
+
+</head>
+<body class="dark-mode">
+    <div class="background-animation">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <button id="theme-toggle" aria-label="Toggle dark mode">
+        <span id="theme-toggle-icon">☀️</span>
+    </button>
+    
+    <div class="container dark-mode">
+        <h1>Scientific AI Summarizer</h1>        
+        
+        <div class="input-area">
+            <h2>Original Text</h2>
+            <div class="drag-drop-area" id="drag-drop-area">
+                <p>Drag and drop your file here</p>
+                <p>or</p>
+                <button id="upload-btn">Choose File</button>
+            </div>
+            <textarea id="original-text" placeholder="Paste the original text here or upload a file"></textarea>
+            <div id="word-count">Word count: 0</div>
+            <div class="button-group">
+                <span id="file-info"></span>
+                <button id="summarize-btn">Summarize</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">Summarizing...</div>
+        <div class="success-message" id="success-message">Summary generated successfully!</div>
+        <div class="error-message" id="error-message">An error occurred. Please try again.</div>
+
+        <div class="output-area">
+            <h2>Summary</h2>
+            <textarea id="summary-output" placeholder="The output summary will be displayed here" readonly></textarea>
+            <div class="export-buttons">
+                <button id="copy-btn">Copy to Clipboard</button>
+                <button id="download-btn">Download as TXT</button>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInfoSpan = document.getElementById('file-info');
+        const originalTextArea = document.getElementById('original-text');
+        const summarizeBtn = document.getElementById('summarize-btn');
+        const summaryOutput = document.getElementById('summary-output');
+        const dragDropArea = document.getElementById('drag-drop-area');
+        const loadingIndicator = document.getElementById('loading');
+        const successMessage = document.getElementById('success-message');
+        const errorMessage = document.getElementById('error-message');
+        const wordCountDisplay = document.getElementById('word-count');
+        const copyBtn = document.getElementById('copy-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        
+        function handleFile(file) {
+            fileInfoSpan.textContent = `File: ${file.name}`;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileType = file.type;
+                console.log(`Handling file type: ${fileType}`);
+                if (fileType === 'text/plain') {
+                    originalTextArea.value = e.target.result;
+                    updateWordCount();
+                } else if (fileType === 'application/pdf') {
+                    extractTextFromPDF(e.target.result);
+                } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    extractTextFromDocx(e.target.result);
+                } else {
+                    originalTextArea.value = `Unsupported file type: ${file.name}`;
+                    updateWordCount();
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        async function extractTextFromPDF(arrayBuffer) {
+            try {
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                const pdfDoc = await loadingTask.promise;
+                let text = '';
+                const numPages = pdfDoc.numPages;
+                for (let i = 1; i <= numPages; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    text += `${pageText}\n`;
+                }
+                console.log(`Extracted text from PDF: ${text}`);
+                originalTextArea.value = text;
+                updateWordCount();
+            } catch (error) {
+                console.error('Error extracting text from PDF:', error);
+                showMessage(errorMessage);
+            }
+        }
+        
+        function extractTextFromDocx(arrayBuffer) {
+            mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+                .then(result => {
+                    const text = result.value;
+                    console.log(`Extracted text from DOCX: ${text}`);
+                    originalTextArea.value = text;
+                    updateWordCount();
+                })
+                .catch(error => {
+                    console.error('Error extracting text from DOCX:', error);
+                    showMessage(errorMessage);
+                });
+        }
+        
+        uploadBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.doc,.docx,.pdf,.rtf,.odt';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                handleFile(file);
+            };
+            input.click();
+        });
+        
+        dragDropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragDropArea.classList.add('dragover');
+        });
+        
+        dragDropArea.addEventListener('dragleave', () => {
+            dragDropArea.classList.remove('dragover');
+        });
+        
+        dragDropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragDropArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleFile(file);
+        });
+        
+        dragDropArea.addEventListener('click', () => {
+            uploadBtn.click();
+        });
+        
+        function showMessage(element) {
+            element.classList.add('show-message');
+            setTimeout(() => {
+                element.classList.remove('show-message');
+            }, 3000);
+        }
+        
+        function updateWordCount() {
+            const text = originalTextArea.value;
+            const wordCount = text.trim().split(/\s+/).length;
+            wordCountDisplay.textContent = `Word count: ${wordCount}`;
+        }
+        
+        originalTextArea.addEventListener('input', updateWordCount);
+        
+        summarizeBtn.addEventListener('click', async function() {
+            const originalText = originalTextArea.value;
+            if (originalText.trim() === '') {
+                showMessage(errorMessage);
+                return;
+            }
+            
+            loadingIndicator.style.display = 'block';
+            summarizeBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: originalText }),
+                });
+                
+                const data = await response.json();
+                if (data.error) {
+                    showMessage(errorMessage);
+                } else {
+                    summaryOutput.value = data.summary;
+                    showMessage(successMessage);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(errorMessage);
+            } finally {
+                loadingIndicator.style.display = 'none';
+                summarizeBtn.disabled = false;
+            }
+        });
+        
+        copyBtn.addEventListener('click', function() {
+            summaryOutput.select();
+            document.execCommand('copy');
+            showMessage(successMessage);
+        });
+        
+        downloadBtn.addEventListener('click', function() {
+            const text = summaryOutput.value;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'summary.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+        
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeToggleIcon = document.getElementById('theme-toggle-icon');
+        
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            document.querySelector('.container').classList.toggle('dark-mode');
+            updateThemeIcon();
+            updateShapeColors();
+        }
+        
+        function updateThemeIcon() {
+            if (document.body.classList.contains('dark-mode')) {
+                themeToggleIcon.textContent = '🌙'; // Moon icon for dark mode
+            } else {
+                themeToggleIcon.textContent = '☀️'; // Sun icon for light mode
+            }
+        }
+        
+        themeToggle.addEventListener('click', toggleDarkMode);
+        
+        // Initialize the icon based on the initial theme
+        updateThemeIcon();
+        
+        // Add a simple animation to the drag and drop area
+        function animateDragDropArea() {
+            dragDropArea.style.animation = 'pulse 1s';
+            setTimeout(() => {
+                dragDropArea.style.animation = '';
+            }, 1000);
+        }
+        
+        setInterval(animateDragDropArea, 5000);
+        
+        // Add keyframe animation for text highlight and drag-drop area pulse
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes highlight {
+                from { background-color: var(--primary-light); }
+                to { background-color: transparent; }
+            }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        function animateBackgroundShapes() {
+            const shapes = document.querySelectorAll('.shape');
+            shapes.forEach(shape => {
+                shape.style.transform = `translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(${Math.random() * 360}deg)`;
+            });
+        }
+        
+        // Animate shapes every 5 seconds
+        setInterval(animateBackgroundShapes, 5000);
+        
+        // Update shape colors when toggling dark mode
+        function updateShapeColors() {
+            const shapes = document.querySelectorAll('.shape');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            shapes[0].style.backgroundColor = isDarkMode ? '#9d46ff' : '#b39ddb';
+            shapes[1].style.backgroundColor = isDarkMode ? '#6200ea' : '#673ab7';
+            shapes[2].style.backgroundColor = isDarkMode ? '#0a00b6' : '#4527a0';
+        }
+        
+
+
+        function handleFile(file) {
+            fileInfoSpan.textContent = `File: ${file.name}`;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileType = file.type;
+                console.log(`Handling file type: ${fileType}`);
+                if (fileType === 'text/plain') {
+                    originalTextArea.value = e.target.result;
+                    updateWordCount();
+                } else if (fileType === 'application/pdf') {
+                    extractTextFromPDF(e.target.result);
+                } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    extractTextFromDocx(file);
+                } else {
+                    originalTextArea.value = `Unsupported file type: ${file.name}`;
+                    updateWordCount();
+                }
+            };
+            if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.readAsText(file);
+            }
+        }
+        
+        async function extractTextFromPDF(arrayBuffer) {
+            try {
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let text = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text += content.items.map(item => item.str).join(' ') + '\n';
+                }
+                originalTextArea.value = text;
+                updateWordCount();
+            } catch (error) {
+                console.error('Error extracting text from PDF:', error);
+                showMessage(errorMessage);
+            }
+        }
+        
+        function extractTextFromDocx(file) {
+            mammoth.extractRawText({ arrayBuffer: file })
+                .then(result => {
+                    const text = result.value;
+                    console.log(`Extracted text from DOCX: ${text}`);
+                    originalTextArea.value = text;
+                    updateWordCount();
+                })
+                .catch(error => {
+                    console.error('Error extracting text from DOCX:', error);
+                    showMessage(errorMessage);
+                });
+        }
+
+
+
+        // Call updateShapeColors on page load
+        updateShapeColors();
+        
+    </script>
+</body>
+</html>

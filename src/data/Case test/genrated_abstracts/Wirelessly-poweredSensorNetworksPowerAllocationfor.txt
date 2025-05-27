@@ -1,0 +1,1 @@
+More Energy than with a point-to-point communication. The purpose of this paper is to formulate a novel method to calculate the beamformer transmission power. Since the transmission power of WET systems is limited, we have to allocate the transmission power intelligently.

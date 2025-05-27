@@ -1,0 +1,1 @@
+A stochastic geometric approach is then used to provide a mathematical model of the LWPA, by assuming that the network topology can be described by a directed acyclic graph. The graph model enables us to study the path selection process as well as to study the influence of wireless conditions on the overall LWPA performance.

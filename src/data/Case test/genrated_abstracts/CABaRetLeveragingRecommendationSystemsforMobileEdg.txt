@@ -1,0 +1,1 @@
+Cache-as-a-Service content recommendation services. Specifically, the operator leverages the information provided by the RS and, based on this, provides independent of the CP high-quality and Cache-as-a-Service content recommendation services.
